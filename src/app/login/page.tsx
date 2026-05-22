@@ -74,7 +74,7 @@ export default function LoginPage() {
             <div>
 
               <h1 className="text-3xl font-black">
-                TravelPro
+                Mallick Travels
               </h1>
 
               <p className="text-sm uppercase tracking-[0.4em] text-gray-300">

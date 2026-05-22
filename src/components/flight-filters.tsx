@@ -6,45 +6,50 @@ import { useState, useEffect, useTransition } from "react";
 export default function FlightFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // useTransition prevents the UI from freezing while Next.js fetches new data
   const [isPending, startTransition] = useTransition();
 
-  // Local state for the slider so it moves smoothly without waiting for the server
-  const [localPrice, setLocalPrice] = useState(searchParams.get("maxPrice") || "1000");
-
+  const [localPrice, setLocalPrice] = useState(searchParams.get("maxPrice") || "20000");
   const currentStops = searchParams.get("stops");
-  const urlPrice = searchParams.get("maxPrice") || "1000";
+  const currentRefundable = searchParams.get("refundable");
 
-  // Sync local state if URL changes from somewhere else
   useEffect(() => {
-    setLocalPrice(urlPrice);
-  }, [urlPrice]);
+    setLocalPrice(searchParams.get("maxPrice") || "20000");
+  }, [searchParams]);
 
   const updateFilter = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+    if (value) params.set(key, value);
+    else params.delete(key);
     
-    // Wrap router.push in startTransition to keep the UI responsive
     startTransition(() => {
       router.push(`?${params.toString()}`, { scroll: false });
     });
   };
 
-  // Debounce the price slider: only update the URL 400ms after the user STOPS dragging
+  const toggleArrayFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const current = params.get(key)?.split(",") || [];
+    
+    if (current.includes(value)) {
+      const updated = current.filter(item => item !== value);
+      if (updated.length) params.set(key, updated.join(","));
+      else params.delete(key);
+    } else {
+      params.set(key, [...current, value].join(","));
+    }
+
+    startTransition(() => {
+      router.push(`?${params.toString()}`, { scroll: false });
+    });
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (localPrice !== urlPrice) {
+      if (localPrice !== (searchParams.get("maxPrice") || "20000")) {
         updateFilter("maxPrice", localPrice);
       }
     }, 400);
-
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localPrice]);
 
   const clearFilters = () => {
@@ -53,86 +58,87 @@ export default function FlightFilters() {
     });
   };
 
+  const activeAirlines = searchParams.get("airlines")?.split(",") || [];
+  const activeTimes = searchParams.get("depTime")?.split(",") || [];
+
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-8 sticky top-4">
+    <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-6 sticky top-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
       <div className="flex items-center justify-between border-b pb-4">
-        <div className="flex items-center gap-2">
-          <h3 className="font-bold text-lg">Filters</h3>
-          {/* Show a subtle loading spinner when fetching data */}
-          {isPending && (
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          )}
-        </div>
-        
-        {(currentStops || searchParams.get("maxPrice")) && (
-          <button 
-            onClick={clearFilters}
-            disabled={isPending}
-            className="text-sm text-blue-600 hover:underline disabled:opacity-50"
-          >
-            Clear All
-          </button>
-        )}
+        <h3 className="font-bold text-lg text-gray-900">Filters</h3>
+        <button onClick={clearFilters} disabled={isPending} className="text-sm font-semibold text-blue-600 hover:text-blue-800 disabled:opacity-50">
+          CLEAR ALL
+        </button>
       </div>
 
-      {/* STOPS FILTER */}
+      {/* Stops */}
       <div>
-        <h4 className="font-semibold mb-4 text-gray-800">Stops</h4>
-        <div className="space-y-3">
+        <h4 className="font-bold mb-3 text-sm text-gray-800 uppercase tracking-wide">Stops</h4>
+        <div className="space-y-2">
           {[
-            { value: "", label: "Any number of stops" },
-            { value: "0", label: "Non-stop only" },
-            { value: "1", label: "Up to 1 stop" },
-            { value: "2", label: "Up to 2 stops" }
+            { value: "0", label: "Non-stop" },
+            { value: "1", label: "1 Stop" },
+            { value: "2", label: "2+ Stops" }
           ].map((option) => (
-            <label 
-              key={option.value} 
-              className={`flex items-center gap-3 cursor-pointer group ${isPending ? 'opacity-50' : ''}`}
-            >
-              <div className="relative flex items-center justify-center">
-                <input
-                  type="radio"
-                  name="stops"
-                  value={option.value}
-                  checked={currentStops === option.value || (!currentStops && option.value === "")}
-                  onChange={(e) => updateFilter("stops", e.target.value)}
-                  disabled={isPending}
-                  className="w-5 h-5 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer peer"
-                />
-              </div>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-                {option.label}
-              </span>
+            <label key={option.value} className="flex items-center gap-3 cursor-pointer group">
+              <input type="radio" name="stops" value={option.value} checked={currentStops === option.value} onChange={(e) => updateFilter("stops", e.target.value)} className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-black">{option.label}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {/* PRICE FILTER */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-semibold text-gray-800">Max Price</h4>
-          <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-            ${localPrice}
-          </span>
+      {/* Price */}
+      <div className="border-t pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="font-bold text-sm text-gray-800 uppercase tracking-wide">One Way Price</h4>
+          <span className="text-xs font-bold text-gray-900">₹{localPrice}</span>
         </div>
-        
-        <input
-          type="range"
-          min="50"
-          max="2000"
-          step="50"
-          value={localPrice}
-          onChange={(e) => setLocalPrice(e.target.value)} // Update local state instantly, URL updates via debounce
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-        />
-        
-        <div className="flex justify-between text-xs font-medium text-gray-400 mt-3">
-          <span>$50</span>
-          <span>$1000</span>
-          <span>$2000+</span>
+        <input type="range" min="2000" max="50000" step="500" value={localPrice} onChange={(e) => setLocalPrice(e.target.value)} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+      </div>
+
+      {/* Departure Time */}
+      <div className="border-t pt-4">
+        <h4 className="font-bold mb-3 text-sm text-gray-800 uppercase tracking-wide">Departure Time</h4>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { id: "morning", label: "Morning", sub: "06:00 - 12:00" },
+            { id: "afternoon", label: "Afternoon", sub: "12:00 - 18:00" },
+            { id: "evening", label: "Evening", sub: "18:00 - 00:00" },
+            { id: "night", label: "Night", sub: "00:00 - 06:00" },
+          ].map((time) => (
+            <button 
+              key={time.id} onClick={() => toggleArrayFilter("depTime", time.id)}
+              className={`p-2 border rounded-xl text-center transition-all ${activeTimes.includes(time.id) ? 'bg-blue-50 border-blue-500 text-blue-700' : 'hover:border-gray-400 bg-white text-gray-600'}`}
+            >
+              <div className="text-sm font-bold">{time.label}</div>
+              <div className="text-[10px] opacity-70">{time.sub}</div>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Airlines */}
+      <div className="border-t pt-4">
+        <h4 className="font-bold mb-3 text-sm text-gray-800 uppercase tracking-wide">Airlines</h4>
+        <div className="space-y-3">
+          {["IndiGo", "Air India", "Vistara", "Akasa Air", "SpiceJet"].map((airline) => (
+            <label key={airline} className="flex items-center gap-3 cursor-pointer group">
+              <input type="checkbox" checked={activeAirlines.includes(airline)} onChange={() => toggleArrayFilter("airlines", airline)} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span className="text-sm font-medium text-gray-600 group-hover:text-black">{airline}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Fare Type (Refundable) */}
+      <div className="border-t pt-4">
+        <h4 className="font-bold mb-3 text-sm text-gray-800 uppercase tracking-wide">Fare Options</h4>
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <input type="checkbox" checked={currentRefundable === "true"} onChange={(e) => updateFilter("refundable", e.target.checked ? "true" : "")} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <span className="text-sm font-medium text-gray-600 group-hover:text-black">Refundable Fares Only</span>
+        </label>
+      </div>
+
     </div>
   );
 }

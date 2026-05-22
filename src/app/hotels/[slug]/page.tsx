@@ -102,7 +102,7 @@ export default async function HotelDetailsPage({
 
                             <div className="space-y-8">
 
-                                {data.rooms.map((room: any) => (
+                                {data?.rooms?.map((room: any) => (
 
                                     <div
                                         key={room.id}

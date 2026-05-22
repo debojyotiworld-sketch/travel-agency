@@ -135,7 +135,7 @@ export default function SignupPage() {
             <div>
 
               <h1 className="text-3xl font-black text-white">
-                TravelPro
+                Mallick Travels
               </h1>
 
               <p className="text-xs uppercase tracking-[0.4em] text-gray-300">
@@ -283,7 +283,7 @@ export default function SignupPage() {
               <div>
 
                 <h1 className="text-2xl font-black text-white">
-                  TravelPro
+                  Mallick Travels
                 </h1>
 
                 <p className="text-xs uppercase tracking-[0.3em] text-gray-400">
