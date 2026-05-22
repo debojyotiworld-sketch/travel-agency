@@ -1,10 +1,11 @@
+import { Suspense } from "react";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import BusSearch from "@/components/bus-search";
 import BusFilters from "@/components/bus-filters";
 import BusCard from "@/components/bus-card";
 
-// Mock Data (আপনি পরে API থেকে আনতে পারবেন)
+// Mock Data (আপনি পরে API থেকে আনতে পারবেন)[cite: 1]
 const buses = [
   {
     id: "1",
@@ -55,7 +56,10 @@ export default function BusesPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-white text-center mb-8">
             Book Bus Tickets
           </h1>
-          <BusSearch />
+          {/* Vercel Error ফিক্স করার জন্য Suspense যোগ করা হলো */}
+          <Suspense fallback={<div className="text-white text-center py-4">Loading search...</div>}>
+            <BusSearch />
+          </Suspense>
         </div>
       </section>
 
@@ -65,7 +69,9 @@ export default function BusesPage() {
           
           {/* Filters (Left Side) */}
           <div className="lg:col-span-1 hidden lg:block">
-            <BusFilters />
+            <Suspense fallback={<div className="py-4 text-center">Loading filters...</div>}>
+              <BusFilters />
+            </Suspense>
           </div>
 
           {/* Bus Results (Right Side) */}
